@@ -1,0 +1,67 @@
+{
+  "type": "reference-based product lifestyle photograph",
+  "goal": "",
+  "reconstruction": {
+    "level": 5,
+    "locked_dimensions": [],
+    "planned_changes": []
+  },
+  "reference_role": "The attached original image is evidence for product identity, counts, details, relative scale and advertising copy. Scene and layout may change as requested.",
+  "subject": {
+    "products": [],
+    "accessories": [],
+    "critical_details": [],
+    "relative_scale": "",
+    "layout": ""
+  },
+  "scene": {
+    "location": "",
+    "surface": "",
+    "time_of_day": "",
+    "mood": "",
+    "extra_props": [],
+    "extra_props_rule": "Avoid unnecessary new props and objects that imply additional included merchandise."
+  },
+  "camera": {
+    "viewpoint": "",
+    "framing": "Keep complete products visible with a clear focal hierarchy."
+  },
+  "lighting": {
+    "type": "",
+    "direction": "",
+    "palette": "",
+    "physical_consistency": "Rebuild believable shadows, contact, reflections and material texture for the new scene."
+  },
+  "human_presence": {
+    "enabled": false,
+    "form_and_gestures": "",
+    "rule": "Only include people or hands when relevant. Preserve person count, role, believable anatomy and product-to-hand scale. Apply depth-guided appearance changes only to unlocked scene participants. Preserve the identity of portrait subjects or user-locked people, and all faces/patterns on merchandise. If only hands/back views are visible, do not invent a visible face; if no people, do not add people for this dimension. For a visible human face, plan a concrete depth-guided expression change independently of identity changes; preserve identity when locked but allow expression changes unless expression itself is explicitly locked. Greater depth means more redesign freedom, not stronger or exaggerated emotion. Preserve product character expressions and advertising emojis. By default preserve the source emotional tone at every depth; depth controls only expression variation within that tone. Only an explicit user request may change the emotional direction. A high depth, scene change or recasting is not authorization to turn smiles into crying, sadness or anger. If emotion is unclear, record visible cues and uncertainty and adjust conservatively.",
+    "role": "",
+    "identity_locked": false,
+    "visible_appearance": "",
+    "planned_appearance_changes": [],
+    "source_expression": "",
+    "target_expression": "",
+    "expression_locked": false,
+    "planned_expression_changes": [],
+    "source_emotional_tone": "",
+    "explicit_user_emotional_tone_change": ""
+  },
+  "text_overlay": {
+    "enabled": false,
+    "exact_lines": [],
+    "layout": "",
+    "rule": "Preserve source advertising wording and emojis unless the user requests changes; keep product labels intact; no invented claims."
+  },
+  "constraints": {
+    "must_keep": [],
+    "must_change": [],
+    "ui_to_remove": [],
+    "avoid": [
+      "Duplicated or missing primary products or essential accessories",
+      "Changed product pattern, structure, holes, connectors, packaging or visible labels",
+      "Fused objects, implausible relative scale or malformed hands",
+      "At moderate or high reconstruction levels, using only mirroring, cropping, recoloring or blurring instead of actual scene and composition changes"
+    ]
+  }
+}

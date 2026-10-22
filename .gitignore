@@ -1,0 +1,13 @@
+.env
+.env.*
+!.env.example
+.gateway.env
+.venv/
+.tools/
+.backups/
+INSTALLATION_CHECK.json
+output/
+node_modules/
+*.log
+*.pem
+*.key

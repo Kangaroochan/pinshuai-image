@@ -1,0 +1,32 @@
+{
+  "name": "pinshuai-image",
+  "version": "1.3.4",
+  "created": "2026-10-20",
+  "upstream": "https://github.com/ConardLi/garden-skills",
+  "revision": "7a6d5a72e4f44bb4cc0c23c01b3d97205c723b68",
+  "license": "MIT",
+  "adapted_files": [
+    "scripts/edit.js",
+    "scripts/shared.js",
+    "scripts/check-mode.js"
+  ],
+  "changes": [
+    "Independent product-reference workflow and structured prompt template",
+    "Own output namespace",
+    "Require one output per request; reject multiple response items instead of silently discarding",
+    "Do not print raw API image data",
+    "Journaled runner with no automatic POST retries",
+    "Adjustable reconstruction depth 1-10 (default 5) resolved into prompt guidance and run records; product invariants and user locks remain authoritative",
+    "Bare-number conversational depth and CLI shorthand; automatic change planning, per-new-task default 5, context-aware separation from quantity",
+    "Explicit batch model selection for three GPT Image and two Gemini image models; omitted model makes no generation request",
+    "Local-byte GPT async edits with persisted task IDs and GET-only recovery; preserve generic sync compatibility",
+    "Native Gemini inlineData requests, PNG/JPEG/WebP result formats, saved response and deduplicated download recovery",
+    "Read-only model availability checks; family-specific parameter validation; no automatic model switching",
+    "Add the 21st reconstruction dimension: depth-guided appearance of unlocked human scene participants; protect portrait identity, user locks and product faces; no invented people/faces.",
+    "Expression reconstruction follows all ten depths with concrete source/target planning; identity locks do not imply expression locks; protect explicit emotion locks, product character faces and advertising emojis.",
+    "Preserve source emotional tone by default at all depths; depth varies expression only within that tone; only explicit user instructions authorize emotional direction changes.",
+    "First-run third-party setup asks for consent, hides local terminal API-key entry, and only fills missing .env values.",
+    "Exclude local installation reports and machine-specific paths from the public release package."
+  ],
+  "original_skills_modified": false
+}
