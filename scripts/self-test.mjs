@@ -55,6 +55,7 @@ const server = http.createServer(async (req, res) => {
 await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
 const env = {...process.env, OPENAI_API_KEY:secret, OPENAI_BASE_URL:`http://127.0.0.1:${server.address().port}/v1`, OPENAI_IMAGE_MODEL:'gpt-image-2', ENABLE_GARDEN_IMAGEGEN:'1', PINSHUAI_CASEBOOK_PATH:path.join(dir,'failure-cases.md')};
 const checks = [];
+async function existsForTest(file) { try { await readFile(file); return true; } catch { return false; } }
 async function cli(args) {
   return new Promise((resolve, reject) => {
     const child = spawn(process.execPath, [path.join(here,'run.mjs'),...args], {cwd:dir,env,windowsHide:true,stdio:['ignore','pipe','pipe']});
@@ -118,8 +119,13 @@ try {
   const okDir = path.join(dir,'success');
   const ok = await cli([...base,'--depth','8','--output-dir',okDir]);
   assert.equal(ok.code,0,ok.stderr); assert.equal(count,1);
-  assert.deepEqual(await readFile(path.join(okDir,'result.png')),png);
+  const resultPath = JSON.parse(ok.stdout).output.path;
+  assert.deepEqual(await readFile(resultPath),png);
+  assert.equal(path.dirname(path.dirname(resultPath)),path.dirname(source));
+  assert.match(path.basename(path.dirname(resultPath)),/^\d{4}-\d{4}(?:-\d{2,})?$/);
+  assert.deepEqual(await readdir(path.dirname(resultPath)),[path.basename(resultPath)]);
   assert.deepEqual(await readFile(path.join(okDir,'reference.png')),png);
+  assert.equal(await existsForTest(path.join(okDir,'result.png')),false);
   const state = JSON.parse(await readFile(path.join(okDir,'run.json'),'utf8'));
   assert.equal(state.status,'completed'); assert.equal(state.output.width,1); assert.equal(state.visual_review,'not_reviewed');
   assert.equal(state.depth,8);
@@ -129,9 +135,12 @@ try {
   assert.deepEqual(await readFile(path.join(okDir,'prompt-input.json')),Buffer.concat([await readFile(prompt),Buffer.from('\n')]));
   checks.push('original bytes reach edit endpoint; result, input, parameters and hashes saved');
   checks.push('selected depth reaches actual edit prompt and journal without changing product inventory');
+  const beforeResume=await readdir(path.dirname(source));
   const resume = await cli(['--resume',okDir]);
   assert.equal(resume.code,0); assert.equal(count,1); assert.equal(JSON.parse(resume.stdout).posted_again,false);
-  checks.push('resume inspects local artifacts without reposting');
+  assert.equal(JSON.parse(resume.stdout).output.path,resultPath);
+  assert.deepEqual(await readdir(path.dirname(source)),beforeResume);
+  checks.push('resume verifies the external image without reposting or creating an extra image folder');
   const collision = await cli([...base,'--output-dir',okDir]);
   assert.notEqual(collision.code,0); assert.equal(count,1);
   checks.push('existing task directory refuses overwrite and duplicate submission');
@@ -167,13 +176,19 @@ try {
   assert.equal(defaultOutput.code,0,defaultOutput.stderr);
   const defaultState = JSON.parse(defaultOutput.stdout);
   const defaultDir = path.dirname(defaultState.output.path);
+  assert.equal(path.dirname(path.dirname(defaultState.prompt.path)),path.join(dir,'output','pinshuai-image'));
+  assert.equal(defaultState.run_dir,path.dirname(defaultState.prompt.path));
   assert.equal(path.dirname(defaultDir),path.dirname(source));
   assert.match(path.basename(defaultDir),/^\d{4}-\d{4}(?:-\d{2,})?$/);
+  assert.deepEqual(await readdir(defaultDir),[path.basename(defaultState.output.path)]);
+  assert.ok(await existsForTest(path.join(path.dirname(defaultState.prompt.path),'run.json')));
+  assert.equal(await existsForTest(path.join(path.dirname(defaultState.prompt.path),'result.png')),false);
   const defaultOutputAgain = await cli(base);
   assert.equal(defaultOutputAgain.code,0,defaultOutputAgain.stderr);
   const secondDefaultDir = path.dirname(JSON.parse(defaultOutputAgain.stdout).output.path);
   assert.notEqual(secondDefaultDir,defaultDir);
   assert.equal(path.dirname(secondDefaultDir),path.dirname(source));
-  checks.push('default outputs are timestamped sibling folders beside each reference and same-minute collisions get unique suffixes');
+  assert.deepEqual(await readdir(secondDefaultDir),[path.basename(JSON.parse(defaultOutputAgain.stdout).output.path)]);
+  checks.push('only generated images go into timestamped sibling folders; task artifacts stay in the default run directory and collisions get unique suffixes');
   console.log(JSON.stringify({passed:true,checks,checks_passed:checks.length,mock_requests:count,provider_requests:0,fixture_directory:dir},null,2));
 } finally { await new Promise(resolve => server.close(resolve)); }

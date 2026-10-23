@@ -2,7 +2,7 @@
 import path from 'node:path';
 import process from 'node:process';
 import { readFile, writeFile, mkdir, stat, access } from 'node:fs/promises';
-import { createHash } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { loadAmbientEnv } from './shared.js';
 import { applyReconstruction } from './reconstruction.mjs';
 import { MODELS, modelInfo, modelSettings, availableModels, apiBase } from './models.mjs';
@@ -21,7 +21,7 @@ node scripts/run.mjs [1-10] --image <source> --promptfile <filled.json> --model 
   --aspect-ratio <W:H>   Gemini only; nearest supported source ratio if omitted
   --transport <mode>    auto (default), sync or async; Gemini supports sync only
   --depth <1-10>        Prompt level or 5 if omitted; bare integer also accepted
-  --output-dir <dir>    Must be new; existing directories are never overwritten
+  --output-dir <dir>    Task artifacts only; images go beside source; must be new
   --dry-run             Validate without HTTP calls or task files
   --resume <run-dir>    Recover saved response/file or poll known ID; never POST
   --poll-interval-ms <n> Default 4000; 10..60000
@@ -60,14 +60,15 @@ function localFolderStamp(date=new Date()) {
   const two=value=>String(value).padStart(2,'0');
   return `${two(date.getMonth()+1)}${two(date.getDate())}-${two(date.getHours())}${two(date.getMinutes())}`;
 }
-async function defaultOutputDir(source, date=new Date()) {
+async function createResultDir(source, date=new Date()) {
   const parent=path.dirname(source), stamp=localFolderStamp(date);
   for(let suffix=0;suffix<10000;suffix++) {
     const name=suffix===0?stamp:`${stamp}-${String(suffix).padStart(2,'0')}`;
     const candidate=path.join(parent,name);
-    if(!(await exists(candidate))) return candidate;
+    try { await mkdir(candidate); return candidate; }
+    catch(error) { if(error.code!=='EEXIST') throw error; }
   }
-  throw new Error('Unable to find an unused output directory beside the reference image.');
+  throw new Error('Unable to find an unused image folder beside the reference image.');
 }
 function baseRoot() { return process.env.OPENAI_BASE_URL || 'https://vip.brioi.com/v1'; }
 function enabled() { return ['1','true','yes','on','y'].includes(String(process.env.ENABLE_GARDEN_IMAGEGEN || '').trim().toLowerCase()); }
@@ -81,7 +82,8 @@ function timers(cfg, settings) {
 }
 async function finish(dir, state, response, persist) {
   const bytes=await resultBytes(state, response), info=imageInfo(bytes);
-  const target=path.join(dir,`result${info.extension}`);
+  const imageDir=await createResultDir(state.source.path);
+  const target=path.join(imageDir,`result${info.extension}`);
   state.status='download_pending'; state.output={path:target,...info}; await persist();
   await writeFile(target,bytes);
   state.status='completed'; state.finished_at=new Date().toISOString();
@@ -152,13 +154,14 @@ async function run() {
   const common={...settings,n:1,depth:effectivePrompt.reconstruction.level,depth_profile:effectivePrompt.reconstruction.profile,has_api_key:Boolean(process.env.OPENAI_API_KEY),local_mode_enabled:enabled()};
   if(cfg['--dry-run']) {display({status:'dry_run',...common,reconstruction:effectivePrompt.reconstruction,source,source_sha256:hash(sourceBytes),prompt:promptFile,prompt_sha256:hash(promptText),requests_sent:0,output_files_written:0});return;}
   if(!enabled()||!process.env.OPENAI_API_KEY) throw new Error('Local mode needs ENABLE_GARDEN_IMAGEGEN=1 and OPENAI_API_KEY. No generation request sent.');
-  const dir=path.resolve(cfg['--output-dir']||await defaultOutputDir(source));
+  const stamp=new Date().toISOString().replace(/[:.]/g,'-');
+  const dir=path.resolve(cfg['--output-dir']||path.join('output','pinshuai-image',`${stamp}-${randomUUID().slice(0,8)}`));
   if(await exists(dir)) throw new Error('Output directory already exists; use --resume, never overwrite or repost.');
   const list=await availableModels(settings.base_url,process.env.OPENAI_API_KEY);
   if(!list.models.find(m=>m.id===settings.model)?.listed) throw new Error(`Selected model is not listed for this API key: ${settings.model}. No generation request sent.`);
   await mkdir(path.dirname(dir),{recursive:true}); await mkdir(dir);
   const snapshot=path.join(dir,`reference${sourceInfo.extension}`);
-  const state={skill:'pinshuai-image',version:'1.3.6',status:'prepared',visual_review:'not_reviewed',started_at:new Date().toISOString(),...common,source:{path:source,sha256:hash(sourceBytes),snapshot},prompt:{path:path.join(dir,'prompt.json'),sha256:hash(promptText)},output:{path:path.join(dir,'result.png')},request_count:0};
+  const state={skill:'pinshuai-image',version:'1.3.7',run_dir:dir,status:'prepared',visual_review:'not_reviewed',started_at:new Date().toISOString(),...common,source:{path:source,sha256:hash(sourceBytes),snapshot},prompt:{path:path.join(dir,'prompt.json'),sha256:hash(promptText)},output:{path:null},request_count:0};
   const {persist,saveResponse}=handles(dir,state);
   await writeFile(snapshot,sourceBytes);await writeFile(path.join(dir,'prompt-input.json'),inputPromptText+'\n','utf8');await writeFile(state.prompt.path,promptText+'\n','utf8');await writeFile(path.join(dir,'prompt-used.md'),promptText+'\n','utf8');await saveJson(path.join(dir,'source.json'),state.source);await persist();
   try {
