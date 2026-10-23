@@ -38,6 +38,10 @@ node "<SKILL_DIR>/scripts/setup-provider.mjs" --status
 
 配置齐全后，技能按名称询问本批使用哪个模型：GPT Image 2、GPT Image 2.5 Flare、GPT Image 2.5 Sunburst、Gemini Flash 或 Gemini Pro。当前服务必须支持所选模型和对应接口；列出模型不等于已经验证能生图。失败不会自动换模型或重复提交付费任务。
 
+## 输出位置
+
+默认结果保存在每张原参考图同目录下的 `MMDD-HHmm` 新文件夹，例如 `1023-1720`。同一分钟重复生成时追加 `-01`、`-02` 等序号以避免覆盖；用户明确指定输出路径时按指定路径保存。
+
 ## 对话示例
 
 - 参考图 + `7`：深度 7，每张参考图默认生成 1 张。

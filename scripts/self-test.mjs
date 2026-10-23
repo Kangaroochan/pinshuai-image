@@ -162,5 +162,18 @@ try {
   const invalid=await cli(['--image',source,'--promptfile',empty,'--dry-run']);
   assert.notEqual(invalid.code,0); assert.equal(count,4);
   checks.push('unfilled prompt rejected before HTTP');
+  mode='ok';
+  const defaultOutput = await cli(base);
+  assert.equal(defaultOutput.code,0,defaultOutput.stderr);
+  const defaultState = JSON.parse(defaultOutput.stdout);
+  const defaultDir = path.dirname(defaultState.output.path);
+  assert.equal(path.dirname(defaultDir),path.dirname(source));
+  assert.match(path.basename(defaultDir),/^\d{4}-\d{4}(?:-\d{2,})?$/);
+  const defaultOutputAgain = await cli(base);
+  assert.equal(defaultOutputAgain.code,0,defaultOutputAgain.stderr);
+  const secondDefaultDir = path.dirname(JSON.parse(defaultOutputAgain.stdout).output.path);
+  assert.notEqual(secondDefaultDir,defaultDir);
+  assert.equal(path.dirname(secondDefaultDir),path.dirname(source));
+  checks.push('default outputs are timestamped sibling folders beside each reference and same-minute collisions get unique suffixes');
   console.log(JSON.stringify({passed:true,checks,checks_passed:checks.length,mock_requests:count,provider_requests:0,fixture_directory:dir},null,2));
 } finally { await new Promise(resolve => server.close(resolve)); }
