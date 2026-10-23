@@ -8,6 +8,7 @@ import { applyReconstruction } from './reconstruction.mjs';
 import { MODELS, modelInfo, modelSettings, availableModels, apiBase } from './models.mjs';
 import { imageInfo } from './image-files.mjs';
 import { submit, poll, resultBytes, HttpError } from './provider.mjs';
+import { recordRuntimeFailure } from './casebook.mjs';
 
 const help = `Pinshuai Image: one original reference -> one edited image.
 node scripts/run.mjs [1-10] --image <source> --promptfile <filled.json> --model <id>
@@ -144,7 +145,7 @@ async function run() {
   if(!list.models.find(m=>m.id===settings.model)?.listed) throw new Error(`Selected model is not listed for this API key: ${settings.model}. No generation request sent.`);
   await mkdir(path.dirname(dir),{recursive:true}); await mkdir(dir);
   const snapshot=path.join(dir,`reference${sourceInfo.extension}`);
-  const state={skill:'pinshuai-image',version:'1.3.3',status:'prepared',visual_review:'not_reviewed',started_at:new Date().toISOString(),...common,source:{path:source,sha256:hash(sourceBytes),snapshot},prompt:{path:path.join(dir,'prompt.json'),sha256:hash(promptText)},output:{path:path.join(dir,'result.png')},request_count:0};
+  const state={skill:'pinshuai-image',version:'1.3.5',status:'prepared',visual_review:'not_reviewed',started_at:new Date().toISOString(),...common,source:{path:source,sha256:hash(sourceBytes),snapshot},prompt:{path:path.join(dir,'prompt.json'),sha256:hash(promptText)},output:{path:path.join(dir,'result.png')},request_count:0};
   const {persist,saveResponse}=handles(dir,state);
   await writeFile(snapshot,sourceBytes);await writeFile(path.join(dir,'prompt-input.json'),inputPromptText+'\n','utf8');await writeFile(state.prompt.path,promptText+'\n','utf8');await writeFile(path.join(dir,'prompt-used.md'),promptText+'\n','utf8');await saveJson(path.join(dir,'source.json'),state.source);await persist();
   try {
@@ -157,6 +158,9 @@ async function run() {
   } catch(error) {
     state.status=error instanceof HttpError && error.status>=400 && error.status<500 && !state.task_id?'rejected':state.task_id?'pending':'unknown';
     state.http_status=error.status||null;state.error=redact(error.message);state.finished_at=new Date().toISOString();state.elapsed_seconds=Math.round((Date.now()-Date.parse(state.started_at))/100)/10;await persist();
+    try { state.casebook=await recordRuntimeFailure(dir,state); }
+    catch { state.casebook={recorded:false,reason:'local_casebook_unavailable'}; }
+    await persist();
   }
   await writeFile(path.join(dir,'stderr.log'),redact(state.error||state.last_poll_error||''),'utf8');
   await writeFile(path.join(dir,'stdout.log'),redact(JSON.stringify({status:state.status,model:state.model,task_id:state.task_id,output:state.status==='completed'?state.output:undefined}))+'\n','utf8');

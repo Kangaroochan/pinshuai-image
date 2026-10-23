@@ -13,7 +13,7 @@ const dir = await mkdtemp(path.join(os.tmpdir(), 'pinshuai-image-check-'));
 const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=', 'base64');
 const source = path.join(dir, 'reference.png'), prompt = path.join(dir, 'prompt.json');
 await writeFile(source, png);
-await writeFile(prompt, JSON.stringify({goal:'Re-stage a product in daylight; preserve its original shape and count.',subject:{products:[{name:'round ornament',count:1}]},constraints:{must_keep:['one original round ornament'],must_change:['scene and lighting']}}));
+await writeFile(prompt, JSON.stringify({goal:'Re-stage a product in daylight; preserve its original shape and count.',subject:{products:[{name:'round ornament',count:1}]},human_presence:{enabled:true,planned_appearance_changes:['distinct fictional face'],batch_person_allocation:{planned_counts:'15 women, 5 men; 14 light, 3 medium-brown, 3 dark across 10 two-person outputs',per_output_cast_profiles:[{output:1,people:[{face:'oval face, wide-set eyes, straight brows, narrow nose'}]}]}},constraints:{must_keep:['one original round ornament'],must_change:['scene and lighting']}}));
 const secret = 'mock-key-never-contact-a-provider';
 let count = 0, mode = 'ok', expectedDepth = 8;
 const server = http.createServer(async (req, res) => {
@@ -38,6 +38,10 @@ const server = http.createServer(async (req, res) => {
   assert.match(submitted.reconstruction.human_expression.emotional_tone_rule, /Change emotional direction only when the user explicitly requests it/);
   assert.match(submitted.reconstruction.human_expression.priority, /Identity preservation alone does not freeze expression/);
   assert.equal(typeof submitted.reconstruction.human_appearance.depth_guidance, 'string');
+  assert.equal(submitted.reconstruction.human_appearance.minimum_face_identity_changes, expectedDepth <= 4 ? 0 : expectedDepth <= 6 ? 3 : 4);
+  assert.match(submitted.reconstruction.human_appearance.planning, /different cast profile/);
+  assert.deepEqual(submitted.reconstruction.human_appearance.batch_cast_plan, submitted.human_presence.batch_person_allocation);
+  if(expectedDepth >= 7) assert.match(submitted.reconstruction.human_appearance.depth_guidance, /at least four changed identity-bearing facial features/);
   assert.match(submitted.reconstruction.human_appearance.scope, /user-locked people/);
   assert.match(submitted.reconstruction.human_appearance.applicable_only, /No new people/);
   assert.ok(!body.toString('utf8').includes('name="depth"'), 'Depth is not an API parameter.');
@@ -49,7 +53,7 @@ const server = http.createServer(async (req, res) => {
   res.end(JSON.stringify({data}));
 });
 await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
-const env = {...process.env, OPENAI_API_KEY:secret, OPENAI_BASE_URL:`http://127.0.0.1:${server.address().port}/v1`, OPENAI_IMAGE_MODEL:'gpt-image-2', ENABLE_GARDEN_IMAGEGEN:'1'};
+const env = {...process.env, OPENAI_API_KEY:secret, OPENAI_BASE_URL:`http://127.0.0.1:${server.address().port}/v1`, OPENAI_IMAGE_MODEL:'gpt-image-2', ENABLE_GARDEN_IMAGEGEN:'1', PINSHUAI_CASEBOOK_PATH:path.join(dir,'failure-cases.md')};
 const checks = [];
 async function cli(args) {
   return new Promise((resolve, reject) => {
@@ -138,6 +142,11 @@ try {
   assert.equal(JSON.parse(rejected.stdout).status,'rejected');
   assert.ok(!rejected.stdout.includes(secret));
   assert.ok(!(await readFile(path.join(dir,'rejected','stderr.log'),'utf8')).includes(secret));
+  const casebook = await readFile(env.PINSHUAI_CASEBOOK_PATH,'utf8');
+  assert.match(casebook,/"category": "provider_rejected"/);
+  assert.match(casebook,/"confidence": "confirmed"/);
+  assert.ok(!casebook.includes(secret));
+  assert.ok(!casebook.includes(dir));
   checks.push('401 preserved as rejection, no retry, error log masks key');
   mode='disconnect';
   const unknown = await cli([...base,'--output-dir',path.join(dir,'unknown')]);

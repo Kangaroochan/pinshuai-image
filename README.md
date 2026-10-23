@@ -56,6 +56,17 @@ node "<SKILL_DIR>/scripts/provider-self-test.mjs"
 
 测试仅操作临时文件或本机模拟接口，不会调用真实服务商。生成成功、文件完整和视觉验收分别记录，不能互相替代。
 
+## 案例复盘
+
+运行失败会把脱敏后的状态、模型、深度和内容哈希追加到技能本地 `.local/failure-cases.md`；状态不确定的请求会标记为未确认。视觉案例需先完成验收，再保存包含 `visual_review: reviewed`、`checks`、`issues` 的 `visual-review.json` 并登记：
+
+```powershell
+node "<SKILL_DIR>/scripts/casebook.mjs" record-review "<RUN_DIR>" "<RUN_DIR>/visual-review.json"
+node "<SKILL_DIR>/scripts/casebook.mjs" lessons --category product_identity
+```
+
+同类案例只形成待复核候选，不自动改写通用规则或训练图像模型。案例簿属于本机学习数据，由 `.gitignore` 排除，不应上传到公开仓库。
+
 ## 隐私与许可证
 
 仓库只分发空白配置模板。不要提交 `.env`、`.gateway.env`、API Key、私人参考图或生成结果。Git 忽略规则不会移除已经被提交的密钥；若曾误提交，请在服务商处撤销并更换 Key。

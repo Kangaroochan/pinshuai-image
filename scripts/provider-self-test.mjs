@@ -67,7 +67,7 @@ const server=http.createServer(async(req,res)=>{
 });
 await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
 const origin=`http://127.0.0.1:${server.address().port}`;
-const env={...process.env,OPENAI_API_KEY:secret,OPENAI_BASE_URL:origin+'/v1',OPENAI_IMAGE_MODEL:'gpt-image-2',ENABLE_GARDEN_IMAGEGEN:'1'};
+const env={...process.env,OPENAI_API_KEY:secret,OPENAI_BASE_URL:origin+'/v1',OPENAI_IMAGE_MODEL:'gpt-image-2',ENABLE_GARDEN_IMAGEGEN:'1',PINSHUAI_CASEBOOK_PATH:path.join(dir,'failure-cases.md')};
 const checks=[];
 async function cli(args){
   const r=await new Promise((resolve,reject)=>{

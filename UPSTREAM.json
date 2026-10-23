@@ -1,6 +1,6 @@
 {
   "name": "pinshuai-image",
-  "version": "1.3.4",
+  "version": "1.3.5",
   "created": "2026-10-20",
   "upstream": "https://github.com/ConardLi/garden-skills",
   "revision": "7a6d5a72e4f44bb4cc0c23c01b3d97205c723b68",
@@ -25,6 +25,7 @@
     "Add the 21st reconstruction dimension: depth-guided appearance of unlocked human scene participants; protect portrait identity, user locks and product faces; no invented people/faces.",
     "Expression reconstruction follows all ten depths with concrete source/target planning; identity locks do not imply expression locks; protect explicit emotion locks, product character faces and advertising emojis.",
     "Preserve source emotional tone by default at all depths; depth varies expression only within that tone; only explicit user instructions authorize emotional direction changes.",
+    "Add a private local casebook for redacted runtime failures and explicitly reviewed visual outcomes; retrieve confirmed cases for future planning, keep recurring patterns as candidate rules, and never auto-train or rewrite general guidance.",
     "First-run third-party setup asks for consent, hides local terminal API-key entry, and only fills missing .env values.",
     "Exclude local installation reports and machine-specific paths from the public release package."
   ],

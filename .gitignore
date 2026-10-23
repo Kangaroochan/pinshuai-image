@@ -5,6 +5,7 @@
 .venv/
 .tools/
 .backups/
+.local/
 INSTALLATION_CHECK.json
 output/
 node_modules/
