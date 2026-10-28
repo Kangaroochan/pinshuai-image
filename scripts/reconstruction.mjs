@@ -52,11 +52,12 @@ export function applyReconstruction(input, cliDepth) {
         applicability: 'Only visible human faces; with no person, hands-only or a back view mark not applicable and do not invent a face. Keep facial anatomy plausible. Preserve product character faces, printed expressions and advertising emojis unchanged unless explicitly requested otherwise.',
       },
       human_appearance: {
+        casting_rule: 'By default, do not depict Asian faces among lead, supporting or recognizable background people. An explicit user task prompt requesting Asian casting or preserving a specific person\'s identity overrides this default only for the specified people. A reference face, Chinese copy or an Asian location alone is not such a request. This casting default takes priority over low-depth face-retention guidance for unlocked scene participants. Skin tone is not a substitute for casting. Do not add people or visible faces to people-free, hands-only or back-view scenes. Preserve faces and character artwork printed on the product.',
         scope: 'Only unlocked human scene participants; preserve identity for portrait subjects and user-locked people. Faces or characters on products are product details, never recast them.',
         depth_guidance: level <= 2
-          ? 'Subtle expression and hair details; retain recognizable original facial features.'
+          ? 'Subtle expression and hair details; retain original facial features only when compatible with the casting rule or an explicit user identity lock. Otherwise recast unlocked scene participants.'
           : level <= 4
-            ? 'Moderate hairstyle, hair color, makeup and expression changes; avoid unrelated identity replacement.'
+            ? 'Moderate hairstyle, hair color, makeup and expression changes; avoid unrelated identity replacement except when the casting rule requires recasting an unlocked scene participant.'
             : level <= 6
               ? 'For each unlocked visible face, plan a recognizable new fictional identity by specifying at least three changed identity-bearing facial features: face shape, eye shape or spacing, eyebrow shape, nose shape, lip shape, jaw or cheek structure. Describe hair, clothing and expression separately; those styling changes do not count toward the facial-feature minimum. Keep the broad age range and usage role unless the user says otherwise.'
               : level <= 8

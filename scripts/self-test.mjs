@@ -38,6 +38,10 @@ const server = http.createServer(async (req, res) => {
   assert.match(submitted.reconstruction.human_expression.emotional_tone_rule, /Change emotional direction only when the user explicitly requests it/);
   assert.match(submitted.reconstruction.human_expression.priority, /Identity preservation alone does not freeze expression/);
   assert.equal(typeof submitted.reconstruction.human_appearance.depth_guidance, 'string');
+  assert.match(submitted.reconstruction.human_appearance.casting_rule, /do not depict Asian faces/);
+  assert.match(submitted.reconstruction.human_appearance.casting_rule, /An explicit user task prompt requesting Asian casting/);
+  assert.match(submitted.reconstruction.human_appearance.casting_rule, /only for the specified people/);
+  assert.match(submitted.reconstruction.human_appearance.casting_rule, /low-depth face-retention guidance/);
   assert.equal(submitted.reconstruction.human_appearance.minimum_face_identity_changes, expectedDepth <= 4 ? 0 : expectedDepth <= 6 ? 3 : 4);
   assert.match(submitted.reconstruction.human_appearance.planning, /different cast profile/);
   assert.deepEqual(submitted.reconstruction.human_appearance.batch_cast_plan, submitted.human_presence.batch_person_allocation);
@@ -96,10 +100,13 @@ try {
     expressions.add(parsed.reconstruction.human_expression.depth_guidance);
     assert.match(parsed.reconstruction.human_expression.depth_guidance, /Keep the source emotional tone/);
     assert.match(parsed.reconstruction.human_expression.emotional_tone_rule, /including 10/);
+    assert.match(parsed.reconstruction.human_appearance.casting_rule, /do not depict Asian faces/);
+    if (level <= 4) assert.match(parsed.reconstruction.human_appearance.depth_guidance, /casting rule/);
   }
   assert.equal(expressions.size,10);
   assert.equal(scopes.size,10); assert.equal(count,0);
   checks.push('all ten integer depths yield distinct prompt guidance; default is five');
+  checks.push('default casting rule reaches every depth and the submitted image prompt');
   for(const level of ['0','11','1.5','01','abc']) {
     const invalid = await cli([...base,'--depth',level,'--dry-run']);
     assert.notEqual(invalid.code,0); assert.equal(count,0);
@@ -190,5 +197,15 @@ try {
   assert.equal(path.dirname(secondDefaultDir),path.dirname(source));
   assert.deepEqual(await readdir(secondDefaultDir),[path.basename(JSON.parse(defaultOutputAgain.stdout).output.path)]);
   checks.push('only generated images go into timestamped sibling folders; task artifacts stay in the default run directory and collisions get unique suffixes');
+  const explicitPrompt = path.join(dir,'explicit-casting.json');
+  const explicitInput = JSON.parse(await readFile(prompt,'utf8'));
+  explicitInput.goal = 'The user explicitly requests one Asian adult in this scene.';
+  await writeFile(explicitPrompt,JSON.stringify(explicitInput));
+  const explicitRun = await cli(['--image',source,'--promptfile',explicitPrompt,'--model','gpt-image-2','--output-dir',path.join(dir,'explicit-casting')]);
+  assert.equal(explicitRun.code,0,explicitRun.stderr);
+  const explicitSaved = JSON.parse(await readFile(path.join(dir,'explicit-casting','prompt.json'),'utf8'));
+  assert.equal(explicitSaved.goal,explicitInput.goal);
+  assert.match(explicitSaved.reconstruction.human_appearance.casting_rule, /only for the specified people/);
+  checks.push('explicit user casting request remains in the submitted prompt as a scoped exception');
   console.log(JSON.stringify({passed:true,checks,checks_passed:checks.length,mock_requests:count,provider_requests:0,fixture_directory:dir},null,2));
 } finally { await new Promise(resolve => server.close(resolve)); }
