@@ -5,7 +5,7 @@ import http from 'node:http';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { mkdtemp, readFile, writeFile, readdir } from 'node:fs/promises';
+import { mkdtemp, mkdir, readFile, writeFile, readdir } from 'node:fs/promises';
 import { spawn } from 'node:child_process';
 import { MODELS } from './models.mjs';
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -13,7 +13,14 @@ const dir = await mkdtemp(path.join(os.tmpdir(), 'pinshuai-image-check-'));
 const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=', 'base64');
 const source = path.join(dir, 'reference.png'), prompt = path.join(dir, 'prompt.json');
 await writeFile(source, png);
-await writeFile(prompt, JSON.stringify({goal:'Re-stage a product in daylight; preserve its original shape and count.',subject:{products:[{name:'round ornament',count:1}]},human_presence:{enabled:true,planned_appearance_changes:['distinct fictional face'],batch_person_allocation:{planned_counts:'15 women, 5 men; 14 light, 3 medium-brown, 3 dark across 10 two-person outputs',per_output_cast_profiles:[{output:1,people:[{face:'oval face, wide-set eyes, straight brows, narrow nose'}]}]}},constraints:{must_keep:['one original round ornament'],must_change:['scene and lighting']}}));
+await writeFile(prompt, JSON.stringify({
+  goal:'Re-stage a product in daylight; preserve its original shape and count.',
+  target_market:'European and North American customers; default new copy to natural English.',
+  marketing_concepts:[{creative_origin:'Unverified listing copy: rain-ready organization',evidence_status:'unverified_creative',concept:'A calmer start to a rainy day',claim_boundary:'Scene mood only; do not claim waterproofing or show water resistance as proven'}],
+  subject:{products:[{name:'round ornament',count:1}]},
+  human_presence:{enabled:true,planned_appearance_changes:['distinct fictional face'],batch_person_allocation:{planned_counts:'15 women, 5 men; 14 light, 3 medium-brown, 3 dark across 10 two-person outputs',per_output_cast_profiles:[{output:1,people:[{face:'oval face, wide-set eyes, straight brows, narrow nose'}]}]}},
+  constraints:{must_keep:['one original round ornament'],must_change:['scene and lighting']}
+}));
 const secret = 'mock-key-never-contact-a-provider';
 let count = 0, mode = 'ok', expectedDepth = 8;
 const server = http.createServer(async (req, res) => {
@@ -34,6 +41,10 @@ const server = http.createServer(async (req, res) => {
   assert.match(submitted.reconstruction.invariants, /product identity, count/);
   assert.match(submitted.reconstruction.priority, /Explicit user locks/);
   assert.equal(submitted.subject.products[0].count, 1);
+  assert.match(submitted.target_market,/European and North American customers/);
+  assert.equal(submitted.marketing_concepts[0].evidence_status,'unverified_creative');
+  assert.match(submitted.marketing_concepts[0].creative_origin,/Unverified listing copy/);
+  assert.match(submitted.marketing_concepts[0].claim_boundary,/do not claim waterproofing/);
   assert.equal(typeof submitted.reconstruction.human_expression.depth_guidance, 'string');
   assert.match(submitted.reconstruction.human_expression.emotional_tone_rule, /Change emotional direction only when the user explicitly requests it/);
   assert.match(submitted.reconstruction.human_expression.priority, /Identity preservation alone does not freeze expression/);
@@ -207,5 +218,24 @@ try {
   assert.equal(explicitSaved.goal,explicitInput.goal);
   assert.match(explicitSaved.reconstruction.human_appearance.casting_rule, /only for the specified people/);
   checks.push('explicit user casting request remains in the submitted prompt as a scoped exception');
+  const shared=path.join(dir,'one-group');
+  const otherParent=path.join(dir,'other-references');
+  await mkdir(otherParent);
+  const otherSource=path.join(otherParent,'reference.png');
+  await writeFile(otherSource,png);
+  const grouped=await Promise.all([source,otherSource].map((image,index)=>cli(['--image',image,'--promptfile',prompt,'--model','gpt-image-2','--result-dir',shared,'--result-name','01','--output-dir',path.join(dir,`group-task-${index}`)])));
+  grouped.forEach(result=>assert.equal(result.code,0,result.stderr));
+  const outputs=grouped.map(result=>JSON.parse(result.stdout));
+  assert.deepEqual((await readdir(shared)).sort(),['01-02.png','01.png']);
+  assert(outputs.every(state=>path.dirname(state.output.path)===shared));
+  assert.equal(new Set(outputs.map(state=>state.output.path)).size,2);
+  assert.deepEqual(await readdir(otherParent),['reference.png']);
+  const groupPosts=count;
+  const recovered=await cli(['--resume',outputs[0].run_dir]);
+  assert.equal(recovered.code,0,recovered.stderr);
+  assert.equal(JSON.parse(recovered.stdout).output.path,outputs[0].output.path);
+  assert.equal(count,groupPosts);
+  assert.deepEqual((await readdir(shared)).sort(),['01-02.png','01.png']);
+  checks.push('one group shares a single image-only folder across source directories, concurrent name collisions never overwrite, and resume reuses the saved path without POST');
   console.log(JSON.stringify({passed:true,checks,checks_passed:checks.length,mock_requests:count,provider_requests:0,fixture_directory:dir},null,2));
 } finally { await new Promise(resolve => server.close(resolve)); }

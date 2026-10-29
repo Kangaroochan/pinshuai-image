@@ -1,12 +1,15 @@
 {
   "type": "reference-based product lifestyle photograph",
+  "target_market": "Primarily European and North American customers. Use relevant everyday contexts and natural English for newly authored advertising copy unless the user asks otherwise; preserve original product labels and locked copy exactly.",
   "goal": "",
   "reconstruction": {
     "level": 5,
     "locked_dimensions": [],
     "planned_changes": []
   },
-  "reference_role": "The attached original image is evidence for product identity, counts, details, relative scale and advertising copy. Scene and layout may change as requested.",
+  "reference_role": "The attached original image is evidence for visible product identity, counts, details and relative scale. Its advertising copy is source wording, not automatic proof of every claim. Unverified wording may inspire separately labelled creative marketing concepts; scene and layout may change as requested.",
+  "marketing_concepts": [],
+  "marketing_concepts_rule": "For each unverified source claim or inferred audience need worth using, record its exact wording/source, mark evidence_status as unverified_creative, specify an aspirational scene or subjective value and a claim_boundary. Keep it outside verified product facts. Do not visually demonstrate or caption unverified material, certification, fit, durability, waterproofing, efficacy, performance or guarantees as established facts.",
   "subject": {
     "products": [],
     "accessories": [],
@@ -59,7 +62,7 @@
     "enabled": false,
     "exact_lines": [],
     "layout": "",
-    "rule": "Preserve source advertising wording and emojis unless the user requests changes; keep product labels intact; no invented claims."
+    "rule": "Preserve user-locked advertising wording and emojis and original product labels. Newly authored copy defaults to natural English for European/North American customers. Unverified source claims may inspire creative scene and subjective copy but must not be stated as proven product properties."
   },
   "constraints": {
     "must_keep": [],

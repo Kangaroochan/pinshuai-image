@@ -102,9 +102,12 @@ try {
     const count=posts;const resumed=await cli(['--resume',path.join(dir,n)]);assert.equal(resumed.code,0);assert.equal(posts,count);assert.equal(JSON.parse(resumed.stdout).posted_again,false);
   }
   checks.push('all three GPT IDs carry original bytes, depth and locks through async task save/query/download');
-  pollMode='503';const pending=await job('pending','gpt-image-2',['--transport','async']);assert.equal(pending.code,2);assert.equal((await journal('pending')).task_id,'task_test_1');
+  const pendingGroup=path.join(dir,'grouped-async-results');
+  pollMode='503';const pending=await job('pending','gpt-image-2',['--transport','async','--result-dir',pendingGroup,'--result-name','02']);assert.equal(pending.code,2);assert.equal((await journal('pending')).task_id,'task_test_1');
   const postsBefore=posts;pollMode='success';const resumed=await cli(['--resume',path.join(dir,'pending')]);assert.equal(resumed.code,0);assert.equal(posts,postsBefore);assert.equal((await journal('pending')).status,'completed');
   checks.push('polling 503 preserves task ID; resume finishes with GET only');
+  assert.equal((await journal('pending')).output.path,path.join(pendingGroup,'02.png'));
+  checks.push('interrupted async group output resumes into the recorded shared folder with its original filename');
   pollMode='weird';const weird=await job('weird','gpt-image-2',['--transport','async']);assert.equal(weird.code,2);assert.equal((await journal('weird')).provider_status,'NEW_STATUS');
   checks.push('unrecognized provider status stays unfinished rather than false success');
   pollMode='failed';const failed=await job('failed','gpt-image-2',['--transport','async']);assert.equal((await journal('failed')).status,'failed');assert.notEqual(failed.code,0);pollMode='success';

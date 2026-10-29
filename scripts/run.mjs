@@ -22,6 +22,8 @@ node scripts/run.mjs [1-10] --image <source> --promptfile <filled.json> --model 
   --transport <mode>    auto (default), sync or async; Gemini supports sync only
   --depth <1-10>        Prompt level or 5 if omitted; bare integer also accepted
   --output-dir <dir>    Task artifacts only; images go beside source; must be new
+  --result-dir <dir>    Shared image folder for every output in one group
+  --result-name <stem>  Optional image filename without extension (e.g. 01)
   --dry-run             Validate without HTTP calls or task files
   --resume <run-dir>    Recover saved response/file or poll known ID; never POST
   --poll-interval-ms <n> Default 4000; 10..60000
@@ -30,7 +32,7 @@ node scripts/run.mjs [1-10] --image <source> --promptfile <filled.json> --model 
   --help`;
 function parse(argv) {
   const flags = new Set(['--dry-run','--help','--list-models','--offline']);
-  const options = new Set(['--image','--promptfile','--model','--size','--quality','--image-size','--aspect-ratio','--transport','--depth','--output-dir','--resume','--poll-interval-ms','--wait-timeout-ms','--request-timeout-ms']);
+  const options = new Set(['--image','--promptfile','--model','--size','--quality','--image-size','--aspect-ratio','--transport','--depth','--output-dir','--result-dir','--result-name','--resume','--poll-interval-ms','--wait-timeout-ms','--request-timeout-ms']);
   const cfg={};
   for(let i=0;i<argv.length;i++) {
     const key=argv[i];
@@ -82,10 +84,16 @@ function timers(cfg, settings) {
 }
 async function finish(dir, state, response, persist) {
   const bytes=await resultBytes(state, response), info=imageInfo(bytes);
-  const imageDir=await createResultDir(state.source.path);
-  const target=path.join(imageDir,`result${info.extension}`);
-  state.status='download_pending'; state.output={path:target,...info}; await persist();
-  await writeFile(target,bytes);
+  const savedTarget=state.output?.path;
+  const imageDir=savedTarget?path.dirname(savedTarget):state.result_dir||await createResultDir(state.source.path);
+  await mkdir(imageDir,{recursive:true});
+  const stem=state.result_name||(state.result_dir?path.parse(state.source.path).name:'result');
+  for(let suffix=0;;suffix++) {
+    const target=savedTarget||path.join(imageDir,`${stem}${suffix?`-${String(suffix+1).padStart(2,'0')}`:''}${info.extension}`);
+    state.status='download_pending'; state.output={path:target,...info}; await persist();
+    try { await writeFile(target,bytes,{flag:'wx'}); break; }
+    catch(error) { if(error.code!=='EEXIST'||savedTarget) throw error; }
+  }
   state.status='completed'; state.finished_at=new Date().toISOString();
   state.elapsed_seconds=Math.round((Date.now()-Date.parse(state.started_at))/100)/10;
   delete state.error; delete state.next_step; await persist();
@@ -141,6 +149,7 @@ async function run() {
   if(cfg['--offline']) throw new Error('--offline is only for --list-models.');
   if(!cfg['--image']||!cfg['--promptfile']) throw new Error('--image and --promptfile are required.');
   const source=path.resolve(cfg['--image']), promptFile=path.resolve(cfg['--promptfile']);
+  if(cfg['--result-name'] && (!cfg['--result-dir'] || !/^[^\\/<>:"|?*\x00-\x1f]+$/.test(cfg['--result-name']) || /[. ]$/.test(cfg['--result-name']) || /^(?:CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])(?:\.|$)/i.test(cfg['--result-name']))) throw new Error('--result-name requires --result-dir and a valid filename stem.');
   if(!(await stat(source)).isFile()) throw new Error('Reference must be a file.');
   const sourceBytes=await readFile(source), sourceInfo=imageInfo(sourceBytes);
   const inputPromptText=(await readFile(promptFile,'utf8')).replace(/^\uFEFF/,'').trim(), prompt=JSON.parse(inputPromptText);
@@ -163,6 +172,7 @@ async function run() {
   const snapshot=path.join(dir,`reference${sourceInfo.extension}`);
   const state={skill:'pinshuai-image',version:'1.3.7',run_dir:dir,status:'prepared',visual_review:'not_reviewed',started_at:new Date().toISOString(),...common,source:{path:source,sha256:hash(sourceBytes),snapshot},prompt:{path:path.join(dir,'prompt.json'),sha256:hash(promptText)},output:{path:null},request_count:0};
   const {persist,saveResponse}=handles(dir,state);
+  if(cfg['--result-dir']) {state.result_dir=path.resolve(cfg['--result-dir']);state.result_name=cfg['--result-name']||null;}
   await writeFile(snapshot,sourceBytes);await writeFile(path.join(dir,'prompt-input.json'),inputPromptText+'\n','utf8');await writeFile(state.prompt.path,promptText+'\n','utf8');await writeFile(path.join(dir,'prompt-used.md'),promptText+'\n','utf8');await saveJson(path.join(dir,'source.json'),state.source);await persist();
   try {
     state.status='request_started';state.request_count=1;await persist();
