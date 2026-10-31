@@ -20,7 +20,7 @@ node scripts/run.mjs [1-10] --image <source> --promptfile <filled.json> --model 
   --image-size <1K|2K|4K> Gemini only; default 1K
   --aspect-ratio <W:H>   Gemini only; nearest supported source ratio if omitted
   --transport <mode>    auto (default), sync or async; Gemini supports sync only
-  --depth <1-10>        Prompt level or 5 if omitted; bare integer also accepted
+  --depth <1-10>        Prompt level or 10 if omitted; bare integer also accepted
   --output-dir <dir>    Task artifacts only; images go beside source; must be new
   --result-dir <dir>    Shared image folder for every output in one group
   --result-name <stem>  Optional image filename without extension (e.g. 01)

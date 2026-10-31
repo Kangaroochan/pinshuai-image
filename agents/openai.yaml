@@ -1,6 +1,6 @@
 interface:
   display_name: "Pinshuai Image"
-  short_description: "参考图重构深度1～10，默认5；支持GPT/Gemini五模型选择与商品核对"
-  default_prompt: "使用 $pinshuai-image 处理我的参考图；我可只写1～10的数字指定深度，不写默认5，请自动安排场景与构图变化，保留商品和文案。缺少生图工具时先询问是否使用第三方服务，并协助本地配置；使用第三方出图且未指定模型时，先让我按名称选择本批模型。"
+  short_description: "参考图重构深度1～10，默认10；支持GPT/Gemini五模型选择与商品核对"
+  default_prompt: "使用 $pinshuai-image 处理我的参考图；我可只写1～10的数字指定深度，不写默认10，请自动安排场景与构图变化，保留商品和文案。缺少生图工具时先询问是否使用第三方服务，并协助本地配置；使用第三方出图且未指定模型时，先让我按名称选择本批模型。"
 policy:
   allow_implicit_invocation: true

@@ -31,7 +31,7 @@ export function applyReconstruction(input, cliDepth) {
   const declared = input.reconstruction?.level;
   if (declared !== undefined && (!Number.isInteger(declared) || declared < 1 || declared > 10)) throw new Error('reconstruction.level must be an integer from 1 to 10.');
   if (cliDepth !== undefined && !/^(?:[1-9]|10)$/.test(cliDepth)) throw new Error('--depth must be an integer from 1 to 10.');
-  const level = cliDepth !== undefined ? Number(cliDepth) : declared ?? 5;
+  const level = cliDepth !== undefined ? Number(cliDepth) : declared ?? 10;
   if (cliDepth !== undefined && declared !== undefined && declared !== level) throw new Error('--depth conflicts with reconstruction.level. Align the prompt plan with the requested depth before submitting.');
   const profile = DEPTH_PROFILES[level - 1];
   return {

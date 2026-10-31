@@ -87,7 +87,7 @@ try {
   assert.equal(dry.code,0); assert.equal(count,0); assert.equal(JSON.parse(dry.stdout).requests_sent,0);
   assert.deepEqual((await readdir(dir)).sort(),['prompt.json','reference.png']);
   checks.push('dry-run makes no requests or task files');
-  assert.equal(JSON.parse(dry.stdout).depth,5);
+  assert.equal(JSON.parse(dry.stdout).depth,10);
   const shorthand = await cli(['7',...base,'--dry-run']);
   assert.equal(shorthand.code,0,shorthand.stderr);
   assert.equal(JSON.parse(shorthand.stdout).depth,7);
@@ -116,7 +116,7 @@ try {
   }
   assert.equal(expressions.size,10);
   assert.equal(scopes.size,10); assert.equal(count,0);
-  checks.push('all ten integer depths yield distinct prompt guidance; default is five');
+  checks.push('all ten integer depths yield distinct prompt guidance; default is ten');
   checks.push('default casting rule reaches every depth and the submitted image prompt');
   for(const level of ['0','11','1.5','01','abc']) {
     const invalid = await cli([...base,'--depth',level,'--dry-run']);
@@ -162,7 +162,7 @@ try {
   const collision = await cli([...base,'--output-dir',okDir]);
   assert.notEqual(collision.code,0); assert.equal(count,1);
   checks.push('existing task directory refuses overwrite and duplicate submission');
-  expectedDepth=5;
+  expectedDepth=10;
   mode='reject';
   const rejected = await cli([...base,'--output-dir',path.join(dir,'rejected')]);
   assert.equal(count,2); assert.notEqual(rejected.code,0);

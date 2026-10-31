@@ -30,7 +30,7 @@ OPENAI_API_KEY=
 
 建议对话：“这批想用哪个模型？可选 GPT Image 2、GPT Image 2.5 Flare、GPT Image 2.5 Sunburst、Gemini Flash、Gemini Pro。”仅列当前可见的候选，不用数字编号。已指定“Gemini Flash”就解析为 `gemini-3.1-flash-image`；已指定“Gemini Pro”就解析为 `gemini-3.0-pro-image`。选定后每张调用显式使用同一 `--model`，批次映射记录模型，不重复追问。
 
-用户只写 `7`，解析深度 7；若模型未定，保留图片、数量和深度，再询问模型。没有深度默认 5，不随模型变化。
+用户只写 `7`，解析深度 7；若模型未定，保留图片、数量和深度，再询问模型。没有深度默认 10，不随模型变化。
 
 ## 参数隔离
 
